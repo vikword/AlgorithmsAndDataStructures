@@ -15,16 +15,18 @@ class Program
 [MemoryDiagnoser]
 public class Capacity
 {
-    [Params(1_000_000)]
+    [Params(1_000, 10_000, 100_000, 1_000_000, 10_000_000)]
     public int NumberCount;
+
+    private string str = "Hello World";
 
     [Benchmark]
     public void Queue_Capacity()
     {
-        Queue<int> items = new(NumberCount);
+        Queue<string> items = new(NumberCount);
         for (var i = 0; i < NumberCount; i++)
         {
-            items.Enqueue(i);
+            items.Enqueue(str);
         }
 
         while (items.TryDequeue(out _))
@@ -35,15 +37,17 @@ public class Capacity
     [Benchmark]
     public void MyQueueFromArray_Capacity()
     {
-        MyQueueFromArray<int> items = new(NumberCount);
+        MyQueueFromArray<string> items = new(NumberCount);
         for (int i = 0; i < NumberCount; i++)
         {
-            items.Enqueue(i);
+            items.Enqueue(str);
         }
-        
+
         while (items.TryDequeue(out _))
         {
         }
+
+        items.Dispose();
     }
 
     [Benchmark]
@@ -54,7 +58,7 @@ public class Capacity
         {
             items.Enqueue(i);
         }
-        
+
         while (items.TryDequeue(out _))
         {
         }
@@ -68,7 +72,7 @@ public class Capacity
         {
             items.Enqueue(i);
         }
-        
+
         while (items.TryDequeue(out _))
         {
         }
@@ -83,7 +87,7 @@ public class Capacity
         {
             items.Enqueue(i, random.Next(0, 1000));
         }
-        
+
         while (items.TryDequeue(out _, out _))
         {
         }
@@ -98,12 +102,12 @@ public class Capacity
         {
             items.Enqueue(i, random.Next(0, 1000));
         }
-        
+
         while (items.TryDequeue(out _))
         {
         }
     }
-    
+
     [Benchmark]
     public void Stack_Capacity()
     {
@@ -148,7 +152,7 @@ public class Capacity
             items.Pop();
         }
     }
-    
+
     [Benchmark]
     public void LinkedList_Capacity()
     {

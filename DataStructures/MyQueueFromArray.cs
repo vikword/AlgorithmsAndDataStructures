@@ -1,19 +1,21 @@
+using System.Buffers;
+
 namespace DataStructures;
 
-public class MyQueueFromArray<T>
+public sealed class MyQueueFromArray<T> : IDisposable
 {
-    private readonly T[] _items;
-    private int _front;
-    private int _rear;
+    private T[] _items;
+    private int _head;
+    private int _tail;
     private int _size;
     private readonly int _capacity;
 
     public MyQueueFromArray(int capacity)
     {
         _capacity = capacity;
-        _items = new T[capacity];
-        _front = 0;
-        _rear = -1;
+        _items = ArrayPool<T>.Shared.Rent(capacity);
+        _head = 0;
+        _tail = 0;
         _size = 0;
     }
 
@@ -39,36 +41,47 @@ public class MyQueueFromArray<T>
             throw new InvalidOperationException("Очередь переполнена. Невозможно добавить элемент.");
         }
 
-        _rear = (_rear + 1) % _capacity;
-        _items[_rear] = item;
+        _items[_tail] = item;
+        MoveNext(ref _tail);
         _size++;
     }
 
     public T Dequeue()
     {
+        var head = _head;
+        var array = _items;
+
         if (IsEmpty())
         {
             throw new InvalidOperationException("Очередь пуста. Невозможно извлечь элемент.");
         }
 
-        var item = _items[_front];
-        _front = (_front + 1) % _capacity;
+        var removed = array[head];
+
+        array[head] = default!;
+
+        MoveNext(ref _head);
         _size--;
-        return item;
+        return removed;
     }
 
     public bool TryDequeue(out T? result)
     {
+        var head = _head;
+        var array = _items;
+
         if (IsEmpty())
         {
             result = default;
             return false;
         }
 
-        result = _items[_front];
-        _front = (_front + 1) % _capacity;
-        _size--;
+        result = array[head];
 
+        array[head] = default!;
+
+        MoveNext(ref _head);
+        _size--;
         return true;
     }
 
@@ -79,7 +92,7 @@ public class MyQueueFromArray<T>
             throw new InvalidOperationException("Очередь пуста. Невозможно извлечь элемент.");
         }
 
-        return _items[_front];
+        return _items[_head];
     }
 
     public bool Contains(T item)
@@ -89,9 +102,37 @@ public class MyQueueFromArray<T>
 
     public void Clear()
     {
-        Array.Clear(_items, 0, _items.Length);
-        _front = 0;
-        _rear = -1;
+        Array.Clear(_items, 0, _capacity);
+        _head = 0;
+        _tail = 0;
         _size = 0;
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    ~MyQueueFromArray()
+    {
+        Dispose(false);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        ArrayPool<T>.Shared.Return(_items);
+        _items = default!;
+    }
+
+    private void MoveNext(ref int index)
+    {
+        var tmp = index + 1;
+        if (tmp == _capacity)
+        {
+            tmp = 0;
+        }
+
+        index = tmp;
     }
 }
