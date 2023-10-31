@@ -10,6 +10,11 @@ public sealed class MyQueueFromArray<T> : IDisposable
     private int _size;
     private readonly int _capacity;
 
+    public MyQueueFromArray()
+    {
+        _items = ArrayPool<T>.Shared.Rent(0);
+    }
+
     public MyQueueFromArray(int capacity)
     {
         _capacity = capacity;
@@ -36,9 +41,13 @@ public sealed class MyQueueFromArray<T> : IDisposable
 
     public void Enqueue(T item)
     {
-        if (IsFull())
+        // if (IsFull())
+        // {
+        //     throw new InvalidOperationException("Очередь переполнена. Невозможно добавить элемент.");
+        // }
+        if (_size == _items.Length)
         {
-            throw new InvalidOperationException("Очередь переполнена. Невозможно добавить элемент.");
+            Grow(_size + 1);
         }
 
         _items[_tail] = item;
@@ -134,5 +143,48 @@ public sealed class MyQueueFromArray<T> : IDisposable
         }
 
         index = tmp;
+    }
+
+    private void SetCapacity(int capacity)
+    {
+        var newArray = ArrayPool<T>.Shared.Rent(capacity);
+        if (_size > 0)
+        {
+            if (_head < _tail)
+            {
+                Array.Copy(_items, _head, newArray, 0, _size);
+            }
+            else
+            {
+                Array.Copy(_items, _head, newArray, 0, _capacity - _head);
+                Array.Copy(_items, 0, newArray, _capacity - _head, _tail);
+            }
+        }
+        
+        _items = newArray;
+        _head = 0;
+        _tail = (_size == capacity) ? 0 : _size;
+    }
+    
+    private void Grow(int capacity)
+    {
+        const int growFactor = 2;
+        const int minimumGrow = 4;
+
+        var newCapacity = growFactor * _items.Length;
+
+        if ((uint)newCapacity > Array.MaxLength)
+        {
+            newCapacity = Array.MaxLength;
+        }
+
+        newCapacity = Math.Max(newCapacity, _items.Length + minimumGrow);
+
+        if (newCapacity < capacity)
+        {
+            newCapacity = capacity;
+        }
+
+        SetCapacity(newCapacity);
     }
 }
